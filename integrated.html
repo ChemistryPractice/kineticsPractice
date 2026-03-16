@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kinetics: Integrated Rate Laws</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --primary: #2c3e50; --accent: #27ae60; --error: #c0392b; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 900px; }
+        h1 { color: var(--primary); text-align: center; }
+        
+        .container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+        .table-area { flex: 1; min-width: 250px; }
+        .graph-area { flex: 2; min-width: 350px; background: #fff; padding: 10px; border-radius: 10px; border: 1px solid #ddd; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        th { background: var(--primary); color: white; }
+
+        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        button { padding: 10px 15px; border-radius: 8px; border: none; cursor: pointer; transition: 0.3s; font-weight: bold; }
+        .gen-btn { background: var(--primary); color: white; width: 100%; margin-bottom: 20px; padding: 15px; }
+        .plot-btn { background: #ecf0f1; color: var(--primary); border: 1px solid var(--primary); }
+        .plot-btn:hover { background: var(--primary); color: white; }
+        .ans-btn { background: var(--error); color: white; }
+
+        .question-section { background: #f9f9f9; padding: 15px; border-radius: 10px; margin-top: 15px; border-left: 5px solid var(--accent); width: 100%; box-sizing: border-box; }
+        .reveal-area { margin-top: 10px; color: var(--error); font-weight: bold; display: none; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>Integrated Rate Law Analysis</h1>
+    <button class="gen-btn" onclick="generateData()">Generate New Data Set</button>
+
+    <div class="container">
+        <div class="table-area">
+            <div id="data-table"></div>
+            <p><i>Graph the data to determine the reaction order.</i></p>
+            <div class="btn-group">
+                <button class="plot-btn" onclick="plot('normal')">[A] vs t</button>
+                <button class="plot-btn" onclick="plot('ln')">ln[A] vs t</button>
+                <button class="plot-btn" onclick="plot('inv')">1/[A] vs t</button>
+            </div>
+        </div>
+        <div class="graph-area">
+            <canvas id="kineticsChart"></canvas>
+        </div>
+    </div>
+
+    <div id="questions" style="display:none; width: 100%;">
+        <div class="question-section">
+            <strong>1. Determine the order and the Rate Constant (k).</strong><br>
+            <button class="ans-btn" onclick="toggleAns('ans1')">Check Order & k</button>
+            <div id="ans1" class="reveal-area"></div>
+        </div>
+        <div class="question-section">
+            <strong>2. Concentration/Time Prediction.</strong><br>
+            <div id="q2-text"></div>
+            <button class="ans-btn" onclick="toggleAns('ans2')">Check Prediction</button>
+            <div id="ans2" class="reveal-area"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let chart;
+    let currentData = [];
+    let secretOrder = 1;
+    let secretK = 0;
+    let initialA = 0;
+
+    function generateData() {
+        secretOrder = Math.random() > 0.5 ? 1 : 2;
+        secretK = secretOrder === 1 ? (Math.random() * 0.005 + 0.002).toFixed(5) : (Math.random() * 0.5 + 0.1).toFixed(3);
+        initialA = (Math.random() * 0.5 + 0.5).toFixed(2);
+        
+        currentData = [];
+        let times = [0, 100, 200, 300, 400, 500];
+        
+        let tableHtml = `<table><tr><th>Time (s)</th><th>[A] (M)</th></tr>`;
+        
+        times.forEach(t => {
+            let conc;
+            if (secretOrder === 1) {
+                conc = initialA * Math.exp(-secretK * t);
+            } else {
+                conc = 1 / (secretK * t + (1 / initialA));
+            }
+            currentData.push({ t, a: conc });
+            tableHtml += `<tr><td>${t}</td><td>${conc.toFixed(4)}</td></tr>`;
+        });
+        tableHtml += `</table>`;
+        document.getElementById('data-table').innerHTML = tableHtml;
+
+        // Setup Answers
+        document.getElementById('ans1').innerHTML = `Order: ${secretOrder === 1 ? "1st Order (Linear ln[A] vs t)" : "2nd Order (Linear 1/[A] vs t)"}\nk = ${Math.abs(secretK)} ${secretOrder === 1 ? "s⁻¹" : "M⁻¹s⁻¹"}`;
+        
+        let targetConc = (initialA * 0.25).toFixed(3);
+        let timeNeeded;
+        if(secretOrder === 1) {
+            timeNeeded = -Math.log(targetConc/initialA) / secretK;
+        } else {
+            timeNeeded = (1/targetConc - 1/initialA) / secretK;
+        }
+        
+        document.getElementById('q2-text').innerText = `How many seconds will it take for [A] to reach ${targetConc} M?`;
+        document.getElementById('ans2').innerText = `Time = ${timeNeeded.toFixed(1)} seconds`;
+
+        document.getElementById('questions').style.display = 'block';
+        if (chart) chart.destroy();
+        plot('normal');
+    }
+
+    function plot(type) {
+        const ctx = document.getElementById('kineticsChart').getContext('2d');
+        if (chart) chart.destroy();
+
+        let label = "[A]";
+        let plotData = currentData.map(d => ({ x: d.t, y: d.a }));
+
+        if (type === 'ln') {
+            label = "ln[A]";
+            plotData = currentData.map(d => ({ x: d.t, y: Math.log(d.a) }));
+        } else if (type === 'inv') {
+            label = "1/[A]";
+            plotData = currentData.map(d => ({ x: d.t, y: 1/d.a }));
+        }
+
+        chart = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: label,
+                    data: plotData,
+                    showLine: true,
+                    borderColor: '#2c3e50',
+                    backgroundColor: '#e67e22'
+                }]
+            },
+            options: {
+                scales: {
+                    x: { title: { display: true, text: 'Time (s)' } },
+                    y: { title: { display: true, text: label } }
+                }
+            }
+        });
+    }
+
+    function toggleAns(id) {
+        let el = document.getElementById(id);
+        el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+    }
+</script>
+
+</body>
+</html>
