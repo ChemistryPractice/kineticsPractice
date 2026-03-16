@@ -98,6 +98,16 @@
     let initialA = 0;
 
     function generateData() {
+        function generateData() {
+        // --- ADD THESE LINES TO CLEAR PREVIOUS ANSWERS ---
+        document.querySelectorAll('.reveal-area').forEach(el => {
+            el.style.display = 'none'; // Hide the red text
+            el.innerText = '';         // Clear the old text
+        });
+        // -------------------------------------------------
+
+        secretOrder = Math.random() > 0.5 ? 1 : 2;
+        // ... (the rest of your existing code)
         secretOrder = Math.random() > 0.5 ? 1 : 2;
         // Adjust K values so the reaction isn't too fast or too slow
         secretK = secretOrder === 1 ? parseFloat((Math.random() * 0.005 + 0.002).toFixed(5)) : parseFloat((Math.random() * 0.5 + 0.1).toFixed(3));
