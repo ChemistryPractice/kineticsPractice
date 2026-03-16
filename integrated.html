@@ -98,71 +98,72 @@
     let initialA = 0;
 
     function generateData() {
-        function generateData() {
-        // --- ADD THESE LINES TO CLEAR PREVIOUS ANSWERS ---
-        document.querySelectorAll('.reveal-area').forEach(el => {
-            el.style.display = 'none'; // Hide the red text
-            el.innerText = '';         // Clear the old text
-        });
-        // -------------------------------------------------
-
-        secretOrder = Math.random() > 0.5 ? 1 : 2;
-        // ... (the rest of your existing code)
-        secretOrder = Math.random() > 0.5 ? 1 : 2;
-        // Adjust K values so the reaction isn't too fast or too slow
-        secretK = secretOrder === 1 ? parseFloat((Math.random() * 0.005 + 0.002).toFixed(5)) : parseFloat((Math.random() * 0.5 + 0.1).toFixed(3));
-        initialA = parseFloat((Math.random() * 0.5 + 0.5).toFixed(2));
-        
-        currentData = [];
-        let times = [0, 100, 200, 300, 400, 500];
-        
-        let tableHtml = `<table><tr><th>Time (s)</th><th>[A] (M)</th></tr>`;
-        
-        times.forEach(t => {
-            let conc;
-            if (secretOrder === 1) {
-                conc = initialA * Math.exp(-secretK * t);
-            } else {
-                conc = 1 / (secretK * t + (1 / initialA));
-            }
-            currentData.push({ t, a: conc });
-            tableHtml += `<tr><td>${t}</td><td>${conc.toFixed(4)}</td></tr>`;
-        });
-        tableHtml += `</table>`;
-        document.getElementById('data-table').innerHTML = tableHtml;
-
-        // --- Question 1: Order and K ---
-        let unitText = secretOrder === 1 ? "s⁻¹" : "M⁻¹s⁻¹";
-        let orderText = secretOrder === 1 ? "1st Order (Linear ln[A] vs t)" : "2nd Order (Linear 1/[A] vs t)";
-        document.getElementById('ans1').innerHTML = `Order: ${orderText}\nk = ${Math.abs(secretK)} ${unitText}`;
-
-        // --- Question 2: Concentration at a future time ---
-        let futureTime = 750; 
-        let futureConc;
-        if (secretOrder === 1) {
-            futureConc = initialA * Math.exp(-secretK * futureTime);
-        } else {
-            futureConc = 1 / (secretK * futureTime + (1 / initialA));
+    // 1. Reset the UI: Hide and clear all answer areas
+    const answerIds = ['ans1', 'ans2', 'ans3'];
+    answerIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.style.display = 'none';
+            el.innerHTML = ''; 
         }
-        document.getElementById('q2-text').innerHTML = `What will the concentration be at <b>t = ${futureTime} s</b>?`;
-        document.getElementById('ans2').innerText = `[A]ₜ = ${futureConc.toPrecision(4)} M`;
+    });
 
-        // --- Question 3: Time to reach a specific concentration ---
-        let targetConc = (initialA * 0.15).toFixed(3); 
-        let timeNeeded;
+    // 2. Set the "Secret" parameters
+    secretOrder = Math.random() > 0.5 ? 1 : 2;
+    // Set k: First order needs smaller k, Second order needs larger k for good data
+    secretK = secretOrder === 1 ? parseFloat((Math.random() * 0.005 + 0.002).toFixed(5)) : parseFloat((Math.random() * 0.5 + 0.1).toFixed(3));
+    initialA = parseFloat((Math.random() * 0.5 + 0.5).toFixed(2));
+    
+    currentData = [];
+    let times = [0, 100, 200, 300, 400, 500];
+    
+    // 3. Build the Table
+    let tableHtml = `<table><tr><th>Time (s)</th><th>[A] (M)</th></tr>`;
+    times.forEach(t => {
+        let conc;
         if (secretOrder === 1) {
-            timeNeeded = -Math.log(targetConc / initialA) / secretK;
+            conc = initialA * Math.exp(-secretK * t);
         } else {
-            timeNeeded = (1 / targetConc - 1 / initialA) / secretK;
+            conc = 1 / (secretK * t + (1 / initialA));
         }
-        document.getElementById('q3-text').innerHTML = `How many seconds will it take for the concentration to drop to <b>${targetConc} M</b>?`;
-        document.getElementById('ans3').innerText = `Time = ${timeNeeded.toFixed(1)} seconds`;
+        currentData.push({ t, a: conc });
+        tableHtml += `<tr><td>${t}</td><td>${conc.toFixed(4)}</td></tr>`;
+    });
+    tableHtml += `</table>`;
+    document.getElementById('data-table').innerHTML = tableHtml;
 
-        // Show the question area and refresh the graph
-        document.getElementById('questions').style.display = 'block';
-        if (chart) chart.destroy();
-        plot('normal'); // Start by showing the standard [A] vs t curve
+    // 4. Prepare Answer 1 (Order & k)
+    let unitText = secretOrder === 1 ? "s⁻¹" : "M⁻¹s⁻¹";
+    let orderText = secretOrder === 1 ? "1st Order (Linear ln[A] vs t)" : "2nd Order (Linear 1/[A] vs t)";
+    document.getElementById('ans1').innerHTML = `Order: ${orderText}<br>k = ${Math.abs(secretK)} ${unitText}`;
+
+    // 5. Prepare Answer 2 (Concentration at future time)
+    let futureTime = 750; 
+    let futureConc;
+    if (secretOrder === 1) {
+        futureConc = initialA * Math.exp(-secretK * futureTime);
+    } else {
+        futureConc = 1 / (secretK * futureTime + (1 / initialA));
     }
+    document.getElementById('q2-text').innerHTML = `What will the concentration be at <b>t = ${futureTime} s</b>?`;
+    document.getElementById('ans2').innerText = `[A]ₜ = ${futureConc.toPrecision(4)} M`;
+
+    // 6. Prepare Answer 3 (Time to reach concentration)
+    let targetVal = (initialA * 0.20).toFixed(3); 
+    let timeNeeded;
+    if (secretOrder === 1) {
+        timeNeeded = -Math.log(targetVal / initialA) / secretK;
+    } else {
+        timeNeeded = (1 / targetVal - 1 / initialA) / secretK;
+    }
+    document.getElementById('q3-text').innerHTML = `How many seconds will it take for the concentration to drop to <b>${targetVal} M</b>?`;
+    document.getElementById('ans3').innerText = `Time = ${timeNeeded.toFixed(1)} seconds`;
+
+    // 7. Show the question area and Reset Graph
+    document.getElementById('questions').style.display = 'block';
+    if (chart) chart.destroy();
+    plot('normal'); 
+}
 
     function plot(type) {
         const ctx = document.getElementById('kineticsChart').getContext('2d');
