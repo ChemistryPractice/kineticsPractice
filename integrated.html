@@ -99,8 +99,9 @@
 
     function generateData() {
         secretOrder = Math.random() > 0.5 ? 1 : 2;
-        secretK = secretOrder === 1 ? (Math.random() * 0.005 + 0.002).toFixed(5) : (Math.random() * 0.5 + 0.1).toFixed(3);
-        initialA = (Math.random() * 0.5 + 0.5).toFixed(2);
+        // Adjust K values so the reaction isn't too fast or too slow
+        secretK = secretOrder === 1 ? parseFloat((Math.random() * 0.005 + 0.002).toFixed(5)) : parseFloat((Math.random() * 0.5 + 0.1).toFixed(3));
+        initialA = parseFloat((Math.random() * 0.5 + 0.5).toFixed(2));
         
         currentData = [];
         let times = [0, 100, 200, 300, 400, 500];
@@ -120,23 +121,37 @@
         tableHtml += `</table>`;
         document.getElementById('data-table').innerHTML = tableHtml;
 
-        // Setup Answers
-        document.getElementById('ans1').innerHTML = `Order: ${secretOrder === 1 ? "1st Order (Linear ln[A] vs t)" : "2nd Order (Linear 1/[A] vs t)"}\nk = ${Math.abs(secretK)} ${secretOrder === 1 ? "s⁻¹" : "M⁻¹s⁻¹"}`;
-        
-        let targetConc = (initialA * 0.25).toFixed(3);
-        let timeNeeded;
-        if(secretOrder === 1) {
-            timeNeeded = -Math.log(targetConc/initialA) / secretK;
-        } else {
-            timeNeeded = (1/targetConc - 1/initialA) / secretK;
-        }
-        
-        document.getElementById('q2-text').innerText = `How many seconds will it take for [A] to reach ${targetConc} M?`;
-        document.getElementById('ans2').innerText = `Time = ${timeNeeded.toFixed(1)} seconds`;
+        // --- Question 1: Order and K ---
+        let unitText = secretOrder === 1 ? "s⁻¹" : "M⁻¹s⁻¹";
+        let orderText = secretOrder === 1 ? "1st Order (Linear ln[A] vs t)" : "2nd Order (Linear 1/[A] vs t)";
+        document.getElementById('ans1').innerHTML = `Order: ${orderText}\nk = ${Math.abs(secretK)} ${unitText}`;
 
+        // --- Question 2: Concentration at a future time ---
+        let futureTime = 750; 
+        let futureConc;
+        if (secretOrder === 1) {
+            futureConc = initialA * Math.exp(-secretK * futureTime);
+        } else {
+            futureConc = 1 / (secretK * futureTime + (1 / initialA));
+        }
+        document.getElementById('q2-text').innerHTML = `What will the concentration be at <b>t = ${futureTime} s</b>?`;
+        document.getElementById('ans2').innerText = `[A]ₜ = ${futureConc.toPrecision(4)} M`;
+
+        // --- Question 3: Time to reach a specific concentration ---
+        let targetConc = (initialA * 0.15).toFixed(3); 
+        let timeNeeded;
+        if (secretOrder === 1) {
+            timeNeeded = -Math.log(targetConc / initialA) / secretK;
+        } else {
+            timeNeeded = (1 / targetConc - 1 / initialA) / secretK;
+        }
+        document.getElementById('q3-text').innerHTML = `How many seconds will it take for the concentration to drop to <b>${targetConc} M</b>?`;
+        document.getElementById('ans3').innerText = `Time = ${timeNeeded.toFixed(1)} seconds`;
+
+        // Show the question area and refresh the graph
         document.getElementById('questions').style.display = 'block';
         if (chart) chart.destroy();
-        plot('normal');
+        plot('normal'); // Start by showing the standard [A] vs t curve
     }
 
     function plot(type) {
