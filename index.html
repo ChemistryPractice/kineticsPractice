@@ -67,21 +67,25 @@
 
     function generateProblem() {
         const orderA = Math.floor(Math.random() * 3); // 0, 1, or 2
-        const orderB = Math.floor(Math.random() * 2) + 1; // 1 or 2 (keep it interesting)
+        const orderB = Math.floor(Math.random() * 2) + 1; // 1 or 2
         const k = (Math.random() * 0.5 + 0.1).toFixed(4);
         
-        // Base concentrations
-        let baseA = 0.10;
-        let baseB = 0.10;
+        // 1. Randomize Starting Concentrations (e.g., 0.12, 0.25, etc.)
+        let baseA = parseFloat((Math.random() * 0.2 + 0.05).toFixed(2));
+        let baseB = parseFloat((Math.random() * 0.2 + 0.05).toFixed(2));
         
-        // Experiments
+        // 2. Randomize Multipliers (Double or Triple)
+        let multA = Math.random() > 0.5 ? 2 : 3;
+        let multB = Math.random() > 0.5 ? 2 : 3;
+        
+        // 3. Generate Experiments with varying concentrations
         let exps = [
             { a: baseA, b: baseB, rate: (k * Math.pow(baseA, orderA) * Math.pow(baseB, orderB)).toExponential(2) },
-            { a: baseA * 2, b: baseB, rate: (k * Math.pow(baseA * 2, orderA) * Math.pow(baseB, orderB)).toExponential(2) },
-            { a: baseA, b: baseB * 2, rate: (k * Math.pow(baseA, orderA) * Math.pow(baseB * 2, orderB)).toExponential(2) }
+            { a: baseA * multA, b: baseB, rate: (k * Math.pow(baseA * multA, orderA) * Math.pow(baseB, orderB)).toExponential(2) },
+            { a: baseA, b: baseB * multB, rate: (k * Math.pow(baseA, orderA) * Math.pow(baseB * multB, orderB)).toExponential(2) }
         ];
 
-        problem = { orderA, orderB, k, baseA, baseB, exps };
+        problem = { orderA, orderB, k, baseA, baseB, exps, multA, multB };
 
         // Draw Table
         let tableHtml = `<table><tr><th>Exp #</th><th>[A] (M)</th><th>[B] (M)</th><th>Initial Rate (M/s)</th></tr>`;
@@ -92,27 +96,30 @@
         
         document.getElementById('data-table-container').innerHTML = tableHtml;
         
-        // Set up Question 3 (New concentrations)
-        let q3A = 0.40; let q3B = 0.30;
+        // Update Question 1 Answer to explain the math based on the new multipliers
+        document.getElementById('ans1').innerHTML = `
+            <b>For [A]:</b> Compare Exp 1 & 2. [A] increased ${multA}x. Rate increased by factor of ${(Math.pow(multA, orderA)).toFixed(0)}x. Order = ${orderA}.<br>
+            <b>For [B]:</b> Compare Exp 1 & 3. [B] increased ${multB}x. Rate increased by factor of ${(Math.pow(multB, orderB)).toFixed(0)}x. Order = ${orderB}.<br>
+            <br>Rate Law: Rate = k[A]<sup>${orderA}</sup>[B]<sup>${orderB}</sup>`;
+
+        // Update Question 3 & 4 with randomized concentrations for the follow-up
+        let q3A = (Math.random() * 0.5 + 0.1).toFixed(2);
+        let q3B = (Math.random() * 0.5 + 0.1).toFixed(2);
         let q3Rate = (k * Math.pow(q3A, orderA) * Math.pow(q3B, orderB)).toExponential(2);
         document.getElementById('q3-text').innerText = `Calculate the rate if [A] = ${q3A} M and [B] = ${q3B} M.`;
-        document.getElementById('ans3').innerText = `Rate = k[A]ˣ[B]ʸ = (${k})(${q3A})ᵃ(${q3B})ᵇ = ${q3Rate} M/s`;
+        document.getElementById('ans3').innerText = `Rate = (${k})(${q3A})<sup>${orderA}</sup>(${q3B})<sup>${orderB}</sup> = ${q3Rate} M/s`;
 
-        // Set up Question 4 (Find [A])
-        let q4B = 0.50; let q4RateVal = 0.05;
+        let q4B = (Math.random() * 0.5 + 0.1).toFixed(2);
+        let q4RateVal = (Math.random() * 0.05 + 0.01).toFixed(3);
         let q4A = Math.pow(q4RateVal / (k * Math.pow(q4B, orderB)), 1/orderA);
-        // Fallback if orderA is 0
-        let q4Display = orderA === 0 ? "Since A is zero order, [A] does not affect the rate. [B] must be: " + (Math.sqrt(q4RateVal/k)).toFixed(3) : "[A] = " + q4A.toFixed(3) + " M";
+        
+        let q4Display = orderA === 0 ? "Since A is zero order, [A] can be any value as long as the rate law is satisfied by [B]." : "[A] = " + q4A.toFixed(3) + " M";
         document.getElementById('q4-text').innerText = `If the Rate is ${q4RateVal} M/s and [B] is ${q4B} M, what is [A]?`;
         document.getElementById('ans4').innerText = q4Display;
 
-        // Populate Answer 1 & 2
-        document.getElementById('ans1').innerHTML = `Order of [A]: ${orderA}<br>Order of [B]: ${orderB}<br>Rate Law: Rate = k[A]<sup>${orderA}</sup>[B]<sup>${orderB}</sup>`;
-        
-        let units = orderA + orderB === 1 ? "s⁻¹" : orderA + orderB === 2 ? "M⁻¹s⁻¹" : "M⁻²s⁻¹";
+        let units = orderA + orderB === 1 ? "s⁻¹" : orderA + orderB === 2 ? "M⁻¹s⁻¹" : orderA + orderB === 3 ? "M⁻²s⁻¹" : "M⁻³s⁻¹";
         document.getElementById('ans2').innerHTML = `k = Rate / ([A]<sup>x</sup>[B]<sup>y</sup>)<br>k = ${k} ${units}`;
 
-        // Reset UI
         document.getElementById('questions-container').style.display = 'block';
         document.querySelectorAll('.reveal-area').forEach(el => el.style.display = 'none');
     }
