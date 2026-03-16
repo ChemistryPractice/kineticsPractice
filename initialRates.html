@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kinetics: Initial Rates Practice</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #e67e22; --error: #c0392b; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 800px; }
+        h1 { color: var(--primary); text-align: center; }
+        
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; background: #fff; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
+        th { background-color: var(--primary); color: white; }
+
+        .question-section { background: #f9f9f9; padding: 15px; border-radius: 10px; margin-bottom: 15px; border-left: 5px solid var(--accent); }
+        .ans-btn { background: var(--error); color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        .ans-btn:hover { background: #a02d23; transform: scale(1.05); }
+        
+        .reveal-area { margin-top: 10px; color: var(--error); font-weight: bold; display: none; line-height: 1.5; }
+        .gen-btn { background: var(--primary); color: white; padding: 15px 30px; border-radius: 12px; border: none; cursor: pointer; font-size: 1.1rem; width: 100%; margin-bottom: 20px; transition: 0.3s; }
+        .gen-btn:hover { background: var(--accent); }
+        
+        .visible { display: block; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>Method of Initial Rates</h1>
+    <button class="gen-btn" onclick="generateProblem()">Generate New Reaction & Data</button>
+
+    <div id="data-table-container"></div>
+
+    <div id="questions-container" style="display:none;">
+        <div class="question-section">
+            <strong>1. Determine the order for each reactant.</strong><br>
+            <button class="ans-btn" onclick="toggleAns('ans1')">Check Orders</button>
+            <div id="ans1" class="reveal-area"></div>
+        </div>
+
+        <div class="question-section">
+            <strong>2. Determine the numerical value for k (with units).</strong><br>
+            <button class="ans-btn" onclick="toggleAns('ans2')">Check k Value</button>
+            <div id="ans2" class="reveal-area"></div>
+        </div>
+
+        <div class="question-section">
+            <strong>3. Predict the Rate for a new set of concentrations.</strong><br>
+            <div id="q3-text"></div>
+            <button class="ans-btn" onclick="toggleAns('ans3')">Check Predicted Rate</button>
+            <div id="ans3" class="reveal-area"></div>
+        </div>
+
+        <div class="question-section">
+            <strong>4. Determine a missing concentration given a Rate.</strong><br>
+            <div id="q4-text"></div>
+            <button class="ans-btn" onclick="toggleAns('ans4')">Check Concentration</button>
+            <div id="ans4" class="reveal-area"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let problem = {};
+
+    function generateProblem() {
+        const orderA = Math.floor(Math.random() * 3); // 0, 1, or 2
+        const orderB = Math.floor(Math.random() * 2) + 1; // 1 or 2 (keep it interesting)
+        const k = (Math.random() * 0.5 + 0.1).toFixed(4);
+        
+        // Base concentrations
+        let baseA = 0.10;
+        let baseB = 0.10;
+        
+        // Experiments
+        let exps = [
+            { a: baseA, b: baseB, rate: (k * Math.pow(baseA, orderA) * Math.pow(baseB, orderB)).toExponential(2) },
+            { a: baseA * 2, b: baseB, rate: (k * Math.pow(baseA * 2, orderA) * Math.pow(baseB, orderB)).toExponential(2) },
+            { a: baseA, b: baseB * 2, rate: (k * Math.pow(baseA, orderA) * Math.pow(baseB * 2, orderB)).toExponential(2) }
+        ];
+
+        problem = { orderA, orderB, k, baseA, baseB, exps };
+
+        // Draw Table
+        let tableHtml = `<table><tr><th>Exp #</th><th>[A] (M)</th><th>[B] (M)</th><th>Initial Rate (M/s)</th></tr>`;
+        exps.forEach((e, i) => {
+            tableHtml += `<tr><td>${i+1}</td><td>${e.a.toFixed(2)}</td><td>${e.b.toFixed(2)}</td><td>${e.rate}</td></tr>`;
+        });
+        tableHtml += `</table>`;
+        
+        document.getElementById('data-table-container').innerHTML = tableHtml;
+        
+        // Set up Question 3 (New concentrations)
+        let q3A = 0.40; let q3B = 0.30;
+        let q3Rate = (k * Math.pow(q3A, orderA) * Math.pow(q3B, orderB)).toExponential(2);
+        document.getElementById('q3-text').innerText = `Calculate the rate if [A] = ${q3A} M and [B] = ${q3B} M.`;
+        document.getElementById('ans3').innerText = `Rate = k[A]ˣ[B]ʸ = (${k})(${q3A})ᵃ(${q3B})ᵇ = ${q3Rate} M/s`;
+
+        // Set up Question 4 (Find [A])
+        let q4B = 0.50; let q4RateVal = 0.05;
+        let q4A = Math.pow(q4RateVal / (k * Math.pow(q4B, orderB)), 1/orderA);
+        // Fallback if orderA is 0
+        let q4Display = orderA === 0 ? "Since A is zero order, [A] does not affect the rate. [B] must be: " + (Math.sqrt(q4RateVal/k)).toFixed(3) : "[A] = " + q4A.toFixed(3) + " M";
+        document.getElementById('q4-text').innerText = `If the Rate is ${q4RateVal} M/s and [B] is ${q4B} M, what is [A]?`;
+        document.getElementById('ans4').innerText = q4Display;
+
+        // Populate Answer 1 & 2
+        document.getElementById('ans1').innerHTML = `Order of [A]: ${orderA}<br>Order of [B]: ${orderB}<br>Rate Law: Rate = k[A]<sup>${orderA}</sup>[B]<sup>${orderB}</sup>`;
+        
+        let units = orderA + orderB === 1 ? "s⁻¹" : orderA + orderB === 2 ? "M⁻¹s⁻¹" : "M⁻²s⁻¹";
+        document.getElementById('ans2').innerHTML = `k = Rate / ([A]<sup>x</sup>[B]<sup>y</sup>)<br>k = ${k} ${units}`;
+
+        // Reset UI
+        document.getElementById('questions-container').style.display = 'block';
+        document.querySelectorAll('.reveal-area').forEach(el => el.style.display = 'none');
+    }
+
+    function toggleAns(id) {
+        let el = document.getElementById(id);
+        el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+    }
+</script>
+</body>
+</html>
